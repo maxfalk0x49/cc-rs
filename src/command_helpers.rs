@@ -145,7 +145,7 @@ impl StderrForwarder {
                             // On Windows, if we get an error then the pipe is broken, so flush
                             // the buffer and bail.
                             if !buffer.is_empty() {
-                                write_warning(&buffer[..]);
+                                write_if_warning(&buffer[..]);
                             }
                             self.inner = None;
                             break true;
@@ -185,7 +185,7 @@ impl StderrForwarder {
                             // Only forward complete lines, leave the rest in the buffer.
                             if let Some((b'\n', line)) = line.split_last() {
                                 consumed += line.len() + 1;
-                                write_warning(line);
+                                write_if_warning(line);
                             }
                         }
                         if consumed > 0 && consumed < self.bytes_buffered {
@@ -197,10 +197,10 @@ impl StderrForwarder {
                     res => {
                         // End of stream: flush remaining data and bail.
                         if self.bytes_buffered > 0 {
-                            write_warning(&buffer[..self.bytes_buffered]);
+                            write_if_warning(&buffer[..self.bytes_buffered]);
                         }
                         if let Err(err) = res {
-                            write_warning(
+                            write_if_warning(
                                 format!("Failed to read from child stderr: {err}").as_bytes(),
                             );
                         }
@@ -236,6 +236,13 @@ impl StderrForwarder {
     fn forward_all(&mut self) {
         let forward_result = self.forward_available();
         assert!(forward_result, "Should have consumed all data");
+    }
+}
+
+fn write_if_warning(line: &[u8]) {
+    let line_str = std::str::from_utf8(line).unwrap();
+    if line_str.contains(" warning ") || line_str.contains(" error ") {
+        write_warning(line);
     }
 }
 
