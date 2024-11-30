@@ -1386,6 +1386,10 @@ impl Build {
         };
         let dst = self.get_out_dir()?;
 
+        //Recompile on change?
+        for file in self.files.iter() {
+            println!("cargo:rerun-if-changed={}", file.to_str().unwrap());
+        }
         let objects = objects_from_files(&self.files, &dst)?;
 
         self.compile_objects(&objects)?;
