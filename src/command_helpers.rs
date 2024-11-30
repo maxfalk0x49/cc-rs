@@ -9,7 +9,7 @@ use std::{
     hash::Hasher,
     io::{self, Read, Write},
     path::Path,
-    process::{Child, ChildStderr, Command, Stdio},
+    process::{Child, ChildStdout, Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
