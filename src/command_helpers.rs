@@ -76,19 +76,21 @@ impl CargoOutput {
     }
 
     fn stdio_for_warnings(&self) -> Stdio {
-        if self.warnings {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        }
+        Stdio::piped()
+        // if self.warnings {
+        //     Stdio::piped()
+        // } else {
+        //     Stdio::null()
+        // }
     }
 
     fn stdio_for_output(&self) -> Stdio {
-        match self.output {
-            OutputKind::Capture => Stdio::piped(),
-            OutputKind::Forward => Stdio::inherit(),
-            OutputKind::Discard => Stdio::null(),
-        }
+        Stdio::piped()
+        // match self.output {
+        //     OutputKind::Capture => Stdio::piped(),
+        //     OutputKind::Forward => Stdio::inherit(),
+        //     OutputKind::Discard => Stdio::null(),
+        // }
     }
 }
 
