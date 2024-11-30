@@ -95,7 +95,7 @@ impl CargoOutput {
 }
 
 pub(crate) struct StderrForwarder {
-    inner: Option<(ChildStderr, Vec<u8>)>,
+    inner: Option<(ChildStdout, Vec<u8>)>,
     #[cfg(feature = "parallel")]
     is_non_blocking: bool,
     #[cfg(feature = "parallel")]
@@ -110,7 +110,7 @@ impl StderrForwarder {
     pub(crate) fn new(child: &mut Child) -> Self {
         Self {
             inner: child
-                .stderr
+                .stdout
                 .take()
                 .map(|stderr| (stderr, Vec::with_capacity(MIN_BUFFER_CAPACITY))),
             bytes_buffered: 0,
