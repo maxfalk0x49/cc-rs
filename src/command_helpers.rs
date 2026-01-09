@@ -1,5 +1,7 @@
 //! Miscellaneous helpers for running commands
 
+#[cfg(target_os = "windows")]
+use std::process::ChildStdout;
 use std::{
     borrow::Cow,
     collections::hash_map,
@@ -9,12 +11,15 @@ use std::{
     hash::Hasher,
     io::{self, Read, Write},
     path::Path,
-    process::{Child, ChildStdout, Command, Stdio},
+    process::{Child, Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
+
+#[cfg(not(target_os = "windows"))]
+use std::process::ChildStderr;
 
 use crate::{Error, ErrorKind, Object};
 
@@ -95,7 +100,10 @@ impl CargoOutput {
 }
 
 pub(crate) struct StderrForwarder {
+    #[cfg(target_os = "windows")]
     inner: Option<(ChildStdout, Vec<u8>)>,
+    #[cfg(not(target_os = "windows"))]
+    inner: Option<(ChildStderr, Vec<u8>)>,
     #[cfg(feature = "parallel")]
     is_non_blocking: bool,
     #[cfg(feature = "parallel")]
@@ -109,8 +117,14 @@ const MIN_BUFFER_CAPACITY: usize = 100;
 impl StderrForwarder {
     pub(crate) fn new(child: &mut Child) -> Self {
         Self {
+            #[cfg(target_os = "windows")]
             inner: child
                 .stdout
+                .take()
+                .map(|stderr| (stderr, Vec::with_capacity(MIN_BUFFER_CAPACITY))),
+            #[cfg(not(target_os = "windows"))]
+            inner: child
+                .stderr
                 .take()
                 .map(|stderr| (stderr, Vec::with_capacity(MIN_BUFFER_CAPACITY))),
             bytes_buffered: 0,
@@ -240,9 +254,18 @@ impl StderrForwarder {
 }
 
 fn write_if_warning(line: &[u8]) {
-    let line_str = std::str::from_utf8(line).unwrap();
-    if line_str.contains(" warning ") || line_str.contains(" error ") {
+    // On Linux, always print compiler output to help debug issues
+    // On Windows, only print warnings/errors
+    #[cfg(target_os = "linux")]
+    {
         write_warning(line);
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let line_str = std::str::from_utf8(line).unwrap();
+        if line_str.contains(" warning ") || line_str.contains(" error ") {
+            write_warning(line);
+        }
     }
 }
 
